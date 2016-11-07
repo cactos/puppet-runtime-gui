@@ -1,0 +1,68 @@
+Listen 8008
+
+<VirtualHost *:8008>
+  # TODO replace with valid hostname
+  ServerName cactos-runtime.example.com:8008
+  
+  # TODO set IP and port of runtime controller
+  Define runtimeController  <%= $cactos_runtime_gui::runtimeController %>
+  # TODO set IP and port of runtime management
+  Define runtimeManagement  <%= $cactos_runtime_gui::runtimeManagement %>
+  # TODO set IP and port of the monitoring hbase REST interface
+  Define monitoringService  <%= $cactos_runtime_gui::monitoringService %>
+  # TODO set IP and port of colosseum server of cloudiator
+  Define colosseumServer    <%= $cactos_runtime_gui::colosseumServer %>
+  
+  # TODO set IP and port of monitoring server
+  Define monitoringServer   <%= $cactos_runtime_gui::monitoringServer %>
+  
+
+  ## '/tmp/runtime-user-interface' is this the directory where you
+  ## cloned this repository to
+  DocumentRoot "/opt/rui/runtime-gui/www"
+
+  <Directory "/opt/rui/runtime-gui/www">
+    Options FollowSymLinks MultiViews
+    AllowOverride All
+    Allow from all
+    Require all granted
+  </Directory>
+
+
+  ErrorLog ${APACHE_LOG_DIR}/error.log
+  CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+  ProxyPassMatch ^/api/global/(.*) http://${runtimeController}/global/$1
+  ProxyPassReverse ^/api/global/(.*) http://${runtimeController}/global/$1
+
+  ProxyPassMatch ^/api/apps/deployment/(.*) http://${runtimeManagement}/services/applications/$1
+  ProxyPassReverse ^/api/apps/deployment/(.*) http://${runtimeManagement}/services/applications/$1
+
+  ProxyPassMatch ^/api/apps/colosseum/(.*) http://${colosseumServer}/$1
+  ProxyPassReverse ^/api/apps/colosseum/(.*) http://${colosseumServer}/$1
+
+  ProxyPassMatch ^/api/dc/computenodes/(.*) http://${monitoringService}/$1
+  ProxyPassReverse ^/api/dc/computenodes/(.*) http://${monitoringService}/$1
+
+  ProxyPassMatch ^/api/dc/(.*) http://${runtimeController}/dc/$1
+  ProxyPassReverse ^/api/dc/(.*) http://${runtimeController}/dc/$1
+  
+  ProxyPassMatch ^/api/cactoopt/(.*) http://${runtimeController}/cactoopt/$1
+  ProxyPassReverse ^/api/cactoopt/(.*) http://${runtimeController}/cactoopt/$1
+  
+  #monitoring integration
+  ProxyPassMatch ^/api/monitoring/(.*) http://${monitoringServer}/$1
+  ProxyPassReverse ^/api/monitoring/(.*) http://${monitoringServer}/$1
+  
+  RewriteEngine on
+  
+  #computenode
+  RewriteRule ^/dashboard/computenodes/snapshots/(computenode.*) /dashboard/computenodes/snapshots/index.html?cn=$1
+  #virtual machine
+  RewriteRule ^/snapshots/vm/(.*) /dashboard/vms/singlevm/index.html?vm=$1 
+
+  ### TODO: add support for visor
+  ### TODO: add support for monitoring dashboard
+  #ProxyPassMatch ^/metrics/source/(.*) http://monitoring.dashboard:5050/$1
+  #ProxyPassReverse ^/metrics/source/(.*) http://monitoring.dashboard:5050/$1
+</VirtualHost>
